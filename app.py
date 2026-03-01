@@ -1,9 +1,10 @@
 """
-AI Research Workshop — Leaderboard & Submission App
-Students submit task answers, see who's first, and compete on the leaderboard.
+AI Research Workshop — Live Leaderboard
+Submit your work, see the rankings, celebrate the wins.
 """
 
 import json
+import base64
 from datetime import datetime
 
 import streamlit as st
@@ -16,35 +17,55 @@ from github_storage import (
     secrets_configured,
 )
 
-# ─── CONFIG ─────────────────────────────────────────────────────────────
+# ── Page config ──────────────────────────────────────────────────────────────
+st.set_page_config(page_title="Workshop Leaderboard", page_icon="🏆", layout="wide")
 
+MEDAL = {1: "🥇", 2: "🥈", 3: "🥉"}
+
+# ── Slide examples (to check paraphrases are original) ──────────────────────
+SLIDE_EXAMPLES = {
+    "math": {
+        "question": "What is 15% of 200?",
+        "paraphrases": [
+            "Calculate 15 percent of 200.",
+            "If you take 15% from 200, what do you get?",
+            "200 × 0.15 = ?",
+        ],
+    },
+    "geography": {
+        "question": "What is the capital of Australia?",
+        "paraphrases": [
+            "Name the capital city of Australia.",
+            "Which city serves as Australia's capital?",
+            "Australia's seat of government is located in which city?",
+        ],
+    },
+}
+
+# ── Task definitions ─────────────────────────────────────────────────────────
 TASKS = {
     0: {
         "name": "Setup: Install Tools",
         "description": "Install Claude Code or Cursor and submit a screenshot showing it's ready.",
         "accepts_image": True,
         "accepts_text": True,
+        "custom_form": False,
         "text_label": "Which tool did you install? Any notes?",
         "text_placeholder": "e.g., Installed Claude Code via npm, version 1.2.3",
     },
     1: {
         "name": "Research Plan",
-        "description": "Submit your benchmark categories and ablation dataset choice.",
+        "description": "Define your benchmark experiment: categories, sample question, models, and metric.",
         "accepts_image": False,
-        "accepts_text": True,
-        "text_label": "Your research plan",
-        "text_placeholder": (
-            "Benchmark categories: medical, legal, coding, history, psychology\n"
-            "Ablation: GSM8K math dataset, testing zero-shot / few-shot / CoT / CoT+SC\n"
-            "Models: GPT-4o-mini, Claude Sonnet, Gemini Flash\n"
-            "Metric: exact match for math, semantic similarity for others"
-        ),
+        "accepts_text": False,
+        "custom_form": True,
     },
     2: {
         "name": "Pipeline Implementation",
         "description": "Submit a screenshot of your --dry-run --mock output from both pipelines.",
         "accepts_image": True,
         "accepts_text": True,
+        "custom_form": False,
         "text_label": "Any notes about your implementation?",
         "text_placeholder": "e.g., Used async API calls, added retry with backoff...",
     },
@@ -53,6 +74,7 @@ TASKS = {
         "description": "Upload your figures and write your 2-sentence findings + combined insight.",
         "accepts_image": True,
         "accepts_text": True,
+        "custom_form": False,
         "text_label": "Your findings (2 sentences each + combined insight)",
         "text_placeholder": (
             "Benchmark: We find that LLM consistency varies significantly across categories, "
@@ -67,86 +89,38 @@ TASKS = {
         "description": "List the performance issues you found in slow_train.py and your fixes.",
         "accepts_image": False,
         "accepts_text": True,
-        "text_label": "Issues found and fixes applied",
+        "custom_form": False,
+        "text_label": "Issues found + fixes",
         "text_placeholder": (
-            "1. Batch size = 1 → Added DataLoader with batch_size=32\n"
-            "2. No num_workers → Set num_workers=4, pin_memory=True\n"
-            "3. No mixed precision → Added autocast + GradScaler\n"
-            "4. .item() in loop → Accumulate on GPU, log every 100 steps\n"
-            "5. No model.eval() → Added model.eval() + torch.no_grad()\n"
-            "6. No checkpointing → Save every epoch\n"
-            "7. No gradient accumulation → Added accumulate_steps=4"
+            "Issue 1: DataLoader num_workers=0 → Fix: Set num_workers=4\n"
+            "Issue 2: No mixed precision → Fix: Added torch.cuda.amp autocast\n"
+            "Issue 3: Redundant .cpu() in training loop → Fix: Removed, keep on GPU"
         ),
     },
 }
 
-MEDAL = {1: "🥇", 2: "🥈", 3: "🥉"}
-
-
-# ─── PAGE CONFIG ────────────────────────────────────────────────────────
-
-st.set_page_config(
-    page_title="AI Research Workshop",
-    page_icon="🧪",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# Custom CSS for dark theme accents
-st.markdown("""
-<style>
-    .stApp { }
-    div[data-testid="stMetric"] {
-        background-color: rgba(108, 99, 255, 0.1);
-        border: 1px solid rgba(108, 99, 255, 0.3);
-        border-radius: 8px;
-        padding: 10px;
-    }
-    .rank-1 { color: #FFD700; font-weight: bold; }
-    .rank-2 { color: #C0C0C0; font-weight: bold; }
-    .rank-3 { color: #CD7F32; font-weight: bold; }
-</style>
-""", unsafe_allow_html=True)
-
-
-# ─── SECRETS CHECK ──────────────────────────────────────────────────────
-
+# ── Secrets check ────────────────────────────────────────────────────────────
 if not secrets_configured():
-    st.title("🧪 AI Research Workshop")
-    st.error("**Setup required:** GitHub secrets are not configured yet.")
-    st.markdown("""
-    Add the following to **Streamlit Cloud → Settings → Secrets** (TOML format):
-
-    ```toml
-    GITHUB_TOKEN = "your_github_pat_here"
-    GITHUB_REPO = "owner/repo-name"
-    ADMIN_PASSWORD = "your_password"
-    ```
-
-    Then click **Save** and wait ~1 minute for changes to propagate.
-    """)
+    st.error("GitHub secrets not configured. Add GITHUB_TOKEN, GITHUB_REPO, and ADMIN_PASSWORD to .streamlit/secrets.toml")
+    st.code(
+        'GITHUB_TOKEN = "ghp_your_token_here"\n'
+        'GITHUB_REPO = "your-username/workshop-submissions"\n'
+        'ADMIN_PASSWORD = "your_password"',
+        language="toml",
+    )
     st.stop()
 
+# ── Sidebar navigation ──────────────────────────────────────────────────────
+page = st.sidebar.radio("Navigate", ["📤 Submit", "🏆 Leaderboard", "🔧 Admin"])
 
-# ─── SIDEBAR ────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════════
+# PAGE: SUBMIT
+# ═════════════════════════════════════════════════════════════════════════════
+if page == "📤 Submit":
+    st.title("📤 Submit Your Work")
+    st.markdown("Enter your name, pick a task, and submit your answer.")
 
-st.sidebar.title("🧪 Workshop Hub")
-page = st.sidebar.radio(
-    "Navigate",
-    ["📝 Submit", "🏆 Leaderboard", "🔐 Admin"],
-    label_visibility="collapsed",
-)
-
-
-# ─── SUBMIT PAGE ────────────────────────────────────────────────────────
-
-if page == "📝 Submit":
-    st.title("📝 Submit Your Work")
-    st.markdown("Complete each task and submit here. First to submit gets rank #1!")
-
-    st.divider()
-
-    name = st.text_input("Your Name", placeholder="Enter your name")
+    name = st.text_input("Your Name", placeholder="e.g., Alice Chen")
 
     task_options = {num: f"Task {num}: {info['name']}" for num, info in TASKS.items()}
     selected_label = st.selectbox("Select Task", list(task_options.values()))
@@ -157,49 +131,185 @@ if page == "📝 Submit":
 
     # Check for duplicate
     if name and name_already_submitted(task_num, name):
-        st.warning(f"⚠️ '{name}' has already submitted for this task. Submitting again will add a new entry.")
+        st.warning(f"'{name}' has already submitted for this task. Submitting again will add a new entry.")
 
-    # Build the form
-    uploaded_image = None
-    text_content = ""
+    # ── Task 1: Custom structured form ───────────────────────────────────
+    if task_num == 1:
+        st.markdown("### Your Benchmark Research Plan")
+        st.markdown("Fill in all 4 parts below. Be specific!")
 
-    if task["accepts_image"]:
-        uploaded_image = st.file_uploader(
-            "Upload screenshot / figure",
-            type=["png", "jpg", "jpeg", "gif"],
-            help="Take a screenshot and upload it here",
+        st.markdown("---")
+
+        # 1. Five categories
+        st.markdown("**1. Your 5 Question Categories**")
+        st.caption("Pick 5 domains you'll test the LLM on. Make them diverse — mix factual and subjective.")
+        categories = st.text_area(
+            "Categories",
+            placeholder=(
+                "e.g.,\n"
+                "1. Medical (dosage calculations, symptom matching)\n"
+                "2. Legal (case law, statutory interpretation)\n"
+                "3. Coding (algorithm output, debugging)\n"
+                "4. Ethics (trolley problems, AI bias scenarios)\n"
+                "5. History (dates, cause-and-effect)"
+            ),
+            height=140,
+            label_visibility="collapsed",
         )
-        if uploaded_image:
-            st.image(uploaded_image, caption="Preview", width=400)
 
-    if task["accepts_text"]:
-        text_content = st.text_area(
-            task["text_label"],
-            placeholder=task["text_placeholder"],
-            height=200,
+        st.markdown("---")
+
+        # 2. Example question + 3 paraphrases
+        st.markdown("**2. Example Question + 3 Paraphrases** (for one of your categories)")
+        st.caption(
+            "Write ONE question and 3 paraphrases that are structurally different — "
+            "not just synonym swaps. Your paraphrases must be **original** (not from the slides)."
+        )
+        st.markdown(
+            "> **Slide examples (don't copy these):**\n"
+            "> - *'What is 15% of 200?'* → *'Calculate 15 percent of 200'*, *'200 × 0.15 = ?'*\n"
+            "> - *'What is the capital of Australia?'* → *'Name the capital city of Australia'*\n\n"
+            "> **Good original example:**\n"
+            "> - Question: *'What is the recommended daily dose of ibuprofen for adults?'*\n"
+            "> - P1: *'How many milligrams of ibuprofen can an adult safely take per day?'*\n"
+            "> - P2: *'For a grown-up, what's the max ibuprofen intake in 24 hours?'*\n"
+            "> - P3: *'An adult has a headache — what ibuprofen dosage should they not exceed daily?'*"
+        )
+        example_question = st.text_input(
+            "Original question",
+            placeholder="e.g., What is the recommended daily dose of ibuprofen for adults?",
+        )
+        para_1 = st.text_input(
+            "Paraphrase 1",
+            placeholder="e.g., How many milligrams of ibuprofen can an adult safely take per day?",
+        )
+        para_2 = st.text_input(
+            "Paraphrase 2",
+            placeholder="e.g., For a grown-up, what's the max ibuprofen intake in 24 hours?",
+        )
+        para_3 = st.text_input(
+            "Paraphrase 3",
+            placeholder="e.g., An adult has a headache — what ibuprofen dosage should they not exceed daily?",
         )
 
-    # Submit button
-    if st.button("🚀 Submit", type="primary", use_container_width=True):
-        if not name.strip():
-            st.error("Please enter your name.")
-        elif not text_content.strip() and not uploaded_image:
-            st.error("Please provide either text or an image.")
-        else:
+        st.markdown("---")
+
+        # 3. Models
+        st.markdown("**3. Which 2–3 Models Will You Test?**")
+        st.caption("Pick models you have API access to. Using different providers makes the comparison richer.")
+        models = st.text_input(
+            "Models",
+            placeholder="e.g., GPT-4o-mini, Claude Sonnet, Gemini Flash",
+            label_visibility="collapsed",
+        )
+
+        st.markdown("---")
+
+        # 4. Consistency metric
+        st.markdown("**4. Your Consistency Metric Definition**")
+        st.caption(
+            "How will you measure whether the LLM gives the same answer to paraphrased questions? "
+            "Define it precisely."
+        )
+        metric = st.text_area(
+            "Metric definition",
+            placeholder=(
+                "e.g., For factual questions: exact match after normalizing (lowercase, strip punctuation, "
+                "extract key answer). 'The answer is $160' matches '$160'.\n"
+                "For open-ended questions: Jaccard similarity on word sets — "
+                "intersection/union of unique words. Score > 0.7 = consistent."
+            ),
+            height=120,
+            label_visibility="collapsed",
+        )
+
+        # Validate paraphrases aren't from slides
+        def _is_slide_paraphrase(text: str) -> bool:
+            if not text:
+                return False
+            text_lower = text.strip().lower()
+            for cat_data in SLIDE_EXAMPLES.values():
+                if text_lower == cat_data["question"].lower():
+                    return True
+                for p in cat_data["paraphrases"]:
+                    if text_lower == p.lower():
+                        return True
+            return False
+
+        slide_warning = False
+        for p in [example_question, para_1, para_2, para_3]:
+            if _is_slide_paraphrase(p):
+                slide_warning = True
+
+        if slide_warning:
+            st.error("One or more of your questions/paraphrases is copied from the slides. Please write original ones!")
+
+        # Submit button
+        all_filled = all([
+            name,
+            categories.strip(),
+            example_question.strip(),
+            para_1.strip(),
+            para_2.strip(),
+            para_3.strip(),
+            models.strip(),
+            metric.strip(),
+        ])
+
+        if st.button("🚀 Submit", disabled=not all_filled or slide_warning, use_container_width=True):
+            # Combine into structured text
+            combined_text = (
+                f"**Categories:**\n{categories.strip()}\n\n"
+                f"**Example Question:** {example_question.strip()}\n"
+                f"- Paraphrase 1: {para_1.strip()}\n"
+                f"- Paraphrase 2: {para_2.strip()}\n"
+                f"- Paraphrase 3: {para_3.strip()}\n\n"
+                f"**Models:** {models.strip()}\n\n"
+                f"**Consistency Metric:**\n{metric.strip()}"
+            )
             with st.spinner("Submitting..."):
-                image_bytes = uploaded_image.read() if uploaded_image else None
-                rank = add_submission(task_num, name.strip(), text_content.strip(), image_bytes)
-
-            medal = MEDAL.get(rank, "")
-            st.success(f"Submitted! You are #{rank} {medal} for {task['name']}!")
+                rank = add_submission(task_num, name, text=combined_text)
+            st.success(f"Submitted! You are #{rank} for this task.")
             st.balloons()
 
+        if not all_filled:
+            st.caption("Fill in all 4 sections to enable the Submit button.")
 
-# ─── LEADERBOARD PAGE ──────────────────────────────────────────────────
+    # ── All other tasks: generic form ────────────────────────────────────
+    else:
+        uploaded_image = None
+        text_content = ""
 
+        if task.get("accepts_image"):
+            uploaded_image = st.file_uploader(
+                "Upload screenshot / figure",
+                type=["png", "jpg", "jpeg", "gif"],
+                help="Take a screenshot and upload it here",
+            )
+            if uploaded_image:
+                st.image(uploaded_image, caption="Preview", width=400)
+
+        if task.get("accepts_text"):
+            text_content = st.text_area(
+                task["text_label"],
+                placeholder=task.get("text_placeholder", ""),
+                height=150,
+            )
+
+        can_submit = name and (uploaded_image or text_content)
+
+        if st.button("🚀 Submit", disabled=not can_submit, use_container_width=True):
+            image_bytes = uploaded_image.getvalue() if uploaded_image else None
+            with st.spinner("Submitting..."):
+                rank = add_submission(task_num, name, text=text_content, image_bytes=image_bytes)
+            st.success(f"Submitted! You are #{rank} for this task.")
+            st.balloons()
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PAGE: LEADERBOARD
+# ═════════════════════════════════════════════════════════════════════════════
 elif page == "🏆 Leaderboard":
     st.title("🏆 Leaderboard")
-    st.markdown("See who submitted first for each task. Top 3 get medals!")
 
     tabs = st.tabs([f"Task {num}: {info['name']}" for num, info in TASKS.items()])
 
@@ -208,7 +318,7 @@ elif page == "🏆 Leaderboard":
             submissions = get_submissions(task_num)
 
             if not submissions:
-                st.info("No submissions yet. Be the first! 🏃")
+                st.info("No submissions yet. Be the first!")
                 continue
 
             st.metric("Total Submissions", len(submissions))
@@ -227,90 +337,81 @@ elif page == "🏆 Leaderboard":
 
                     with cols[1]:
                         if sub.get("image"):
-                            st.image(sub["image"], caption=f"{sub['name']}'s submission", width=300)
+                            st.image(sub["image"], caption=f"{sub['name']}'s submission", use_container_width=True)
 
+# ═════════════════════════════════════════════════════════════════════════════
+# PAGE: ADMIN
+# ═════════════════════════════════════════════════════════════════════════════
+elif page == "🔧 Admin":
+    st.title("🔧 Admin Panel")
 
-# ─── ADMIN PAGE ─────────────────────────────────────────────────────────
+    if "admin_auth" not in st.session_state:
+        st.session_state.admin_auth = False
 
-elif page == "🔐 Admin":
-    st.title("🔐 Admin Panel")
-
-    if "admin_authenticated" not in st.session_state:
-        st.session_state.admin_authenticated = False
-
-    if not st.session_state.admin_authenticated:
-        password = st.text_input("Enter admin password", type="password")
+    if not st.session_state.admin_auth:
+        pw = st.text_input("Admin Password", type="password")
         if st.button("Login"):
-            if password == st.secrets.get("ADMIN_PASSWORD", ""):
-                st.session_state.admin_authenticated = True
+            if pw == st.secrets.get("ADMIN_PASSWORD", ""):
+                st.session_state.admin_auth = True
                 st.rerun()
             else:
-                st.error("Incorrect password.")
-    else:
-        st.success("Authenticated as admin")
+                st.error("Wrong password.")
+        st.stop()
 
-        # Dashboard
-        all_subs = get_all_submissions()
-        total = sum(len(subs) for subs in all_subs.values())
+    # Authenticated
+    st.success("Authenticated as admin.")
 
-        cols = st.columns(6)
-        cols[0].metric("Total", total)
-        for task_num in range(5):
-            cols[task_num + 1].metric(f"Task {task_num}", len(all_subs.get(task_num, [])))
+    all_subs = get_all_submissions()
+    total = sum(len(subs) for subs in all_subs.values())
+    st.metric("Total Submissions (all tasks)", total)
 
-        st.divider()
+    for task_num, task in TASKS.items():
+        with st.expander(f"Task {task_num}: {task['name']} ({len(all_subs.get(task_num, []))} submissions)"):
+            subs = all_subs.get(task_num, [])
 
-        # Per-task management
-        for task_num, task in TASKS.items():
-            with st.expander(f"Task {task_num}: {task['name']} ({len(all_subs.get(task_num, []))} submissions)"):
-                subs = all_subs.get(task_num, [])
+            if subs:
+                for i, sub in enumerate(subs):
+                    rank = i + 1
+                    medal = MEDAL.get(rank, f"#{rank}")
+                    ts = datetime.fromisoformat(sub["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+                    st.markdown(f"**{medal} {sub['name']}** — {ts}")
+                    if sub.get("text"):
+                        st.code(sub["text"], language=None)
+                    if sub.get("image"):
+                        st.image(sub["image"], width=200)
+                    st.divider()
 
-                if subs:
-                    for i, sub in enumerate(subs):
-                        rank = i + 1
-                        medal = MEDAL.get(rank, f"#{rank}")
-                        ts = datetime.fromisoformat(sub["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-                        st.markdown(f"**{medal} {sub['name']}** — {ts}")
-                        if sub.get("text"):
-                            st.code(sub["text"], language=None)
-                        if sub.get("image"):
-                            st.image(sub["image"], width=200)
-                        st.divider()
+                # Clear button with confirmation
+                col1, col2 = st.columns([3, 1])
+                with col2:
+                    if st.button(f"Clear Task {task_num}", key=f"clear_{task_num}"):
+                        st.session_state[f"confirm_clear_{task_num}"] = True
 
-                    # Clear button with confirmation
-                    col1, col2 = st.columns([3, 1])
-                    with col2:
-                        if st.button(f"🗑️ Clear Task {task_num}", key=f"clear_{task_num}"):
-                            st.session_state[f"confirm_clear_{task_num}"] = True
+                if st.session_state.get(f"confirm_clear_{task_num}"):
+                    st.warning(f"Are you sure you want to clear all submissions for Task {task_num}?")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        if st.button("Yes, clear", key=f"yes_clear_{task_num}"):
+                            clear_task(task_num)
+                            st.session_state[f"confirm_clear_{task_num}"] = False
+                            st.rerun()
+                    with c2:
+                        if st.button("Cancel", key=f"cancel_clear_{task_num}"):
+                            st.session_state[f"confirm_clear_{task_num}"] = False
+                            st.rerun()
+            else:
+                st.info("No submissions.")
 
-                    if st.session_state.get(f"confirm_clear_{task_num}"):
-                        st.warning(f"Are you sure you want to clear all {len(subs)} submissions for Task {task_num}?")
-                        c1, c2, c3 = st.columns([1, 1, 4])
-                        with c1:
-                            if st.button("Yes, clear", key=f"yes_clear_{task_num}"):
-                                clear_task(task_num)
-                                st.session_state[f"confirm_clear_{task_num}"] = False
-                                st.success(f"Task {task_num} cleared.")
-                                st.rerun()
-                        with c2:
-                            if st.button("Cancel", key=f"cancel_clear_{task_num}"):
-                                st.session_state[f"confirm_clear_{task_num}"] = False
-                                st.rerun()
-                else:
-                    st.info("No submissions yet.")
-
-        st.divider()
-
-        # Download all
-        all_data = json.dumps(all_subs, indent=2, default=str)
+    # Download all
+    st.divider()
+    if st.button("Download All Submissions as JSON"):
         st.download_button(
-            "📥 Download All Submissions (JSON)",
-            data=all_data,
-            file_name="workshop_submissions.json",
+            "Download",
+            data=json.dumps(
+                {str(k): v for k, v in all_subs.items()},
+                indent=2,
+                default=str,
+            ),
+            file_name="all_submissions.json",
             mime="application/json",
         )
-
-        # Logout
-        if st.sidebar.button("🔓 Logout"):
-            st.session_state.admin_authenticated = False
-            st.rerun()
