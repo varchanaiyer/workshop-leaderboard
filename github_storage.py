@@ -33,12 +33,19 @@ def get_submissions(task_num: int) -> list[dict]:
     try:
         repo = _get_repo()
         contents = repo.get_contents(_file_path(task_num))
-        data = json.loads(base64.b64decode(contents.content).decode())
-        return sorted(data, key=lambda x: x["timestamp"])
+        decoded = base64.b64decode(contents.content).decode().strip()
+        if not decoded:
+            return []
+        data = json.loads(decoded)
+        if not isinstance(data, list):
+            return []
+        return sorted(data, key=lambda x: x.get("timestamp", ""))
     except GithubException as e:
         if e.status == 404:
             return []
         raise
+    except (json.JSONDecodeError, ValueError):
+        return []
 
 
 def add_submission(task_num: int, name: str, text: str = "",
@@ -61,7 +68,10 @@ def add_submission(task_num: int, name: str, text: str = "",
     # Read existing or start fresh
     try:
         contents = repo.get_contents(path)
-        existing = json.loads(base64.b64decode(contents.content).decode())
+        decoded = base64.b64decode(contents.content).decode().strip()
+        existing = json.loads(decoded) if decoded else []
+        if not isinstance(existing, list):
+            existing = []
         existing.append(submission)
         repo.update_file(
             path,
