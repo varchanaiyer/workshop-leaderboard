@@ -11,8 +11,15 @@ import streamlit as st
 from github import Github, GithubException
 
 
+def secrets_configured() -> bool:
+    """Check if GitHub secrets are set up."""
+    return "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets
+
+
 def _get_repo():
     """Get the GitHub repo object from secrets."""
+    if not secrets_configured():
+        raise RuntimeError("GitHub secrets not configured")
     g = Github(st.secrets["GITHUB_TOKEN"])
     return g.get_repo(st.secrets["GITHUB_REPO"])
 

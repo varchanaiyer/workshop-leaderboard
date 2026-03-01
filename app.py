@@ -13,6 +13,7 @@ from github_storage import (
     clear_task,
     get_all_submissions,
     name_already_submitted,
+    secrets_configured,
 )
 
 # ─── CONFIG ─────────────────────────────────────────────────────────────
@@ -106,6 +107,25 @@ st.markdown("""
     .rank-3 { color: #CD7F32; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ─── SECRETS CHECK ──────────────────────────────────────────────────────
+
+if not secrets_configured():
+    st.title("🧪 AI Research Workshop")
+    st.error("**Setup required:** GitHub secrets are not configured yet.")
+    st.markdown("""
+    Add the following to **Streamlit Cloud → Settings → Secrets** (TOML format):
+
+    ```toml
+    GITHUB_TOKEN = "your_github_pat_here"
+    GITHUB_REPO = "owner/repo-name"
+    ADMIN_PASSWORD = "your_password"
+    ```
+
+    Then click **Save** and wait ~1 minute for changes to propagate.
+    """)
+    st.stop()
 
 
 # ─── SIDEBAR ────────────────────────────────────────────────────────────
