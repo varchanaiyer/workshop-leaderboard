@@ -1,0 +1,32 @@
+[
+    {
+        "id": "math_001",
+        "input": "A store sells a jacket for $120 after a 25% discount. What was the original price?",
+        "expected_answer": "$160",
+        "difficulty": "medium"
+    },
+    {
+        "id": "math_002",
+        "input": "If a train travels 240 miles in 4 hours, what is its average speed in miles per hour?",
+        "expected_answer": "60 mph",
+        "difficulty": "easy"
+    },
+    {
+        "id": "math_003",
+        "input": "A recipe calls for 2/3 cup of sugar. If you want to make 1.5 times the recipe, how much sugar do you need?",
+        "expected_answer": "1 cup",
+        "difficulty": "medium"
+    },
+    {
+        "id": "math_004",
+        "input": "A container has 3 red balls and 5 blue balls. What is the probability of drawing a red ball?",
+        "expected_answer": "3/8 or 0.375",
+        "difficulty": "easy"
+    },
+    {
+        "id": "math_005",
+        "input": "If the perimeter of a square is 48 cm, what is its area?",
+        "expected_answer": "144 sq cm",
+        "difficulty": "easy"
+    }
+]

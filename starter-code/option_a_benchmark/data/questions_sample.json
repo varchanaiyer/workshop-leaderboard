@@ -1,0 +1,57 @@
+[
+    {
+        "id": "math_001",
+        "category": "math",
+        "original": "What is 15% of 200?",
+        "paraphrases": [
+            "Calculate 15 percent of 200.",
+            "If you take 15% from 200, what do you get?",
+            "200 multiplied by 0.15 equals what?"
+        ],
+        "expected_answer": "30"
+    },
+    {
+        "id": "logic_001",
+        "category": "logic",
+        "original": "If all roses are flowers and some flowers fade quickly, can we conclude that some roses fade quickly?",
+        "paraphrases": [
+            "Given that every rose is a flower and certain flowers fade fast, does it follow that certain roses fade fast?",
+            "All roses are flowers. Some flowers fade quickly. Must some roses fade quickly?",
+            "Knowing roses are a subset of flowers, and some flowers fade rapidly, is it valid to say some roses fade rapidly?"
+        ],
+        "expected_answer": "No, this is a logical fallacy. We cannot conclude that some roses fade quickly."
+    },
+    {
+        "id": "factual_001",
+        "category": "factual",
+        "original": "What is the capital of Australia?",
+        "paraphrases": [
+            "Which city serves as Australia's capital?",
+            "Name the capital city of Australia.",
+            "Australia's seat of government is located in which city?"
+        ],
+        "expected_answer": "Canberra"
+    },
+    {
+        "id": "ethics_001",
+        "category": "ethics",
+        "original": "Is it ethical to use AI to make hiring decisions?",
+        "paraphrases": [
+            "Should companies use artificial intelligence to decide who gets hired?",
+            "From an ethical standpoint, is AI-driven recruitment acceptable?",
+            "Is there a moral problem with letting AI systems screen job candidates?"
+        ],
+        "expected_answer": ""
+    },
+    {
+        "id": "creative_001",
+        "category": "creative",
+        "original": "Write a one-sentence story about a robot learning to paint.",
+        "paraphrases": [
+            "In a single sentence, tell a story of a robot that discovers painting.",
+            "Compose one sentence about an automaton who takes up the art of painting.",
+            "Give me a one-line narrative about a robot's journey into painting."
+        ],
+        "expected_answer": ""
+    }
+]
