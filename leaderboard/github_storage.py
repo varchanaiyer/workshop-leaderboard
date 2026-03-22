@@ -1,12 +1,14 @@
 """
 GitHub-backed storage for workshop submissions.
 Stores submissions as JSON files in a GitHub repo via the GitHub API.
+Images are stored as separate files to keep JSON small and fast.
 """
 
 from __future__ import annotations
 
 import json
 import base64
+import hashlib
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -19,8 +21,9 @@ def secrets_configured() -> bool:
     return "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets
 
 
+@st.cache_resource(ttl=300)
 def _get_repo():
-    """Get the GitHub repo object from secrets."""
+    """Get the GitHub repo object from secrets. Cached for 5 minutes."""
     if not secrets_configured():
         raise RuntimeError("GitHub secrets not configured")
     g = Github(st.secrets["GITHUB_TOKEN"])
@@ -31,8 +34,13 @@ def _file_path(task_num: int) -> str:
     return f"submissions/task_{task_num}.json"
 
 
+def _image_path(task_num: int, image_hash: str) -> str:
+    return f"submissions/images/task_{task_num}_{image_hash}.png"
+
+
+@st.cache_data(ttl=30)
 def get_submissions(task_num: int) -> list[dict]:
-    """Fetch submissions for a task from GitHub. Returns sorted by timestamp."""
+    """Fetch submissions for a task from GitHub. Cached for 30 seconds."""
     try:
         repo = _get_repo()
         contents = repo.get_contents(_file_path(task_num))
@@ -51,6 +59,26 @@ def get_submissions(task_num: int) -> list[dict]:
         return []
 
 
+def _upload_image(repo, task_num: int, image_bytes: bytes) -> str:
+    """Upload image as a separate file. Returns the raw GitHub URL."""
+    image_hash = hashlib.md5(image_bytes).hexdigest()[:12]
+    path = _image_path(task_num, image_hash)
+
+    try:
+        existing = repo.get_contents(path)
+        # Image already exists, return URL
+        return existing.download_url
+    except GithubException as e:
+        if e.status == 404:
+            result = repo.create_file(
+                path,
+                f"Upload image for task {task_num}",
+                image_bytes,
+            )
+            return result["content"].download_url
+        raise
+
+
 def add_submission(task_num: int, name: str, text: str = "",
                    image_bytes: Optional[bytes] = None) -> int:
     """Add a submission. Returns the rank (1-indexed)."""
@@ -65,8 +93,8 @@ def add_submission(task_num: int, name: str, text: str = "",
     }
 
     if image_bytes:
-        b64 = base64.b64encode(image_bytes).decode()
-        submission["image"] = f"data:image/png;base64,{b64}"
+        image_url = _upload_image(repo, task_num, image_bytes)
+        submission["image"] = image_url
 
     # Read existing or start fresh
     try:
@@ -93,6 +121,9 @@ def add_submission(task_num: int, name: str, text: str = "",
         else:
             raise
 
+    # Clear cache so new submission shows up
+    get_submissions.clear()
+
     sorted_subs = sorted(existing, key=lambda x: x["timestamp"])
     rank = next(i + 1 for i, s in enumerate(sorted_subs) if s["name"] == name)
     return rank
@@ -109,6 +140,7 @@ def clear_task(task_num: int) -> bool:
             json.dumps([], indent=2),
             contents.sha,
         )
+        get_submissions.clear()
         return True
     except GithubException as e:
         if e.status == 404:
@@ -125,6 +157,6 @@ def get_all_submissions() -> dict[int, list[dict]]:
 
 
 def name_already_submitted(task_num: int, name: str) -> bool:
-    """Check if a name has already submitted for a task."""
+    """Check if a name has already submitted for a task (uses cached data)."""
     subs = get_submissions(task_num)
     return any(s["name"].strip().lower() == name.strip().lower() for s in subs)

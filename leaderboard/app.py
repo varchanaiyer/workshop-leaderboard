@@ -4,7 +4,6 @@ Submit your work, see the rankings, celebrate the wins.
 """
 
 import json
-import base64
 from datetime import datetime
 
 import streamlit as st
