@@ -3,9 +3,12 @@ GitHub-backed storage for workshop submissions.
 Stores submissions as JSON files in a GitHub repo via the GitHub API.
 """
 
+from __future__ import annotations
+
 import json
 import base64
 from datetime import datetime, timezone
+from typing import Optional
 
 import streamlit as st
 from github import Github, GithubException
@@ -49,7 +52,7 @@ def get_submissions(task_num: int) -> list[dict]:
 
 
 def add_submission(task_num: int, name: str, text: str = "",
-                   image_bytes: bytes | None = None) -> int:
+                   image_bytes: Optional[bytes] = None) -> int:
     """Add a submission. Returns the rank (1-indexed)."""
     repo = _get_repo()
     path = _file_path(task_num)
@@ -116,7 +119,7 @@ def clear_task(task_num: int) -> bool:
 def get_all_submissions() -> dict[int, list[dict]]:
     """Fetch submissions for all tasks."""
     result = {}
-    for task_num in range(5):
+    for task_num in range(10):
         result[task_num] = get_submissions(task_num)
     return result
 
