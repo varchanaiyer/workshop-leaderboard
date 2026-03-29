@@ -604,7 +604,7 @@ elif page == "🔧 Admin":
     # Authenticated
     st.success("Authenticated as admin.")
 
-    all_subs = get_all_submissions()
+    all_subs = get_all_submissions(num_tasks=len(TASKS))
     total = sum(len(subs) for subs in all_subs.values())
     st.metric("Total Submissions (all tasks)", total)
 
