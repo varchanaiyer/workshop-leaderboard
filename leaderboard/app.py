@@ -60,153 +60,11 @@ TASKS = {
         "custom_form": True,
     },
     2: {
-        "name": "Pipeline Implementation",
-        "description": "Submit a screenshot of your --dry-run --mock output from both pipelines.",
-        "accepts_image": True,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Any notes about your implementation?",
-        "text_placeholder": "e.g., Used async API calls, added retry with backoff...",
-    },
-    3: {
-        "name": "Analysis & Findings",
-        "description": "Upload your figures and write your 2-sentence findings + combined insight.",
-        "accepts_image": True,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Your findings (2 sentences each + combined insight)",
-        "text_placeholder": (
-            "Benchmark: We find that LLM consistency varies significantly across categories, "
-            "with math at 92% and ethics at 54%.\n\n"
-            "Ablation: Chain-of-thought improves accuracy by 15% over zero-shot on GSM8K.\n\n"
-            "Combined: Models that are less consistent on paraphrased questions also "
-            "benefit most from structured prompting strategies."
-        ),
-    },
-    4: {
-        "name": "GPU Optimization",
-        "description": "List the performance issues you found in slow_train.py and your fixes.",
-        "accepts_image": False,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Issues found + fixes",
-        "text_placeholder": (
-            "Issue 1: DataLoader num_workers=0 → Fix: Set num_workers=4\n"
-            "Issue 2: No mixed precision → Fix: Added torch.cuda.amp autocast\n"
-            "Issue 3: Redundant .cpu() in training loop → Fix: Removed, keep on GPU"
-        ),
-    },
-    5: {
         "name": "Prompting Strategy Test",
-        "description": (
-            "Test 4 prompting strategies on ONE question and report the results. "
-            "Use any LLM (ChatGPT, Claude, Gemini, etc.)"
-        ),
+        "description": "Test all 4 prompting strategies on one question and submit your results.",
         "accepts_image": False,
         "accepts_text": False,
         "custom_form": True,
-    },
-    6: {
-        "name": "Answer Normalization",
-        "description": (
-            "Write a Python function that normalizes LLM answers for comparison. "
-            "Test it on the 5 example pairs below and paste your code + results."
-        ),
-        "accepts_image": False,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": (
-            'Your normalize_answer() function + output for these 5 pairs:\n'
-            '1. "The answer is $160." vs "$160"\n'
-            '2. "Paris" vs "paris"\n'
-            '3. "Abraham Lincoln" vs "Lincoln, Abraham"\n'
-            '4. "3.14159" vs "3.14"\n'
-            '5. "Yes, it is ethical." vs "Yes"'
-        ),
-        "text_placeholder": (
-            "```python\n"
-            "def normalize_answer(answer: str) -> str:\n"
-            "    # your code here\n"
-            "    ...\n"
-            "```\n\n"
-            "Results:\n"
-            "1. '$160' vs '$160' → MATCH\n"
-            "2. 'paris' vs 'paris' → MATCH\n"
-            "3. ??? → your design choice\n"
-            "4. ??? → your design choice\n"
-            "5. ??? → your design choice"
-        ),
-    },
-    7: {
-        "name": "Retry Logic",
-        "description": (
-            "Write a call_with_retry() function in Python that calls an API with "
-            "exponential backoff. Paste your code and explain your design choices."
-        ),
-        "accepts_image": False,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Your retry function code + design choices",
-        "text_placeholder": (
-            "```python\n"
-            "def call_with_retry(prompt, model='gpt-4o-mini', max_retries=3):\n"
-            "    # your code here\n"
-            "    ...\n"
-            "```\n\n"
-            "Design choices:\n"
-            "- Retry on: 500, 502, 503, 529 (server errors + rate limit)\n"
-            "- Don't retry on: 400, 401, 403 (client errors — won't help)\n"
-            "- Backoff: 1s, 2s, 4s (exponential)\n"
-            "- Return None on final failure (don't crash the whole experiment)"
-        ),
-    },
-    8: {
-        "name": "Project Scaffold",
-        "description": (
-            "Use an AI tool to generate your project structure. Submit a screenshot "
-            "of your folder tree + the --dry-run output."
-        ),
-        "accepts_image": True,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Your folder structure + dry-run output",
-        "text_placeholder": (
-            "my-project/\n"
-            "├── data/questions.json\n"
-            "├── src/model_api.py\n"
-            "├── src/metrics.py\n"
-            "├── benchmark_main.py\n"
-            "└── requirements.txt\n\n"
-            "$ python benchmark_main.py --model gpt-4o --dry-run\n"
-            "[DRY RUN] Would call gpt-4o with 20 questions...\n"
-            "[DRY RUN] Saving mock results to data/results/\n"
-            "Done! 0 API calls made."
-        ),
-    },
-    9: {
-        "name": "Spot the Mistakes",
-        "description": (
-            "Review this experiment description and find ALL the research methodology mistakes. "
-            "There are at least 5."
-        ),
-        "accepts_image": False,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": (
-            "Find the mistakes in this experiment:\n\n"
-            '"I tested GPT-4o on 10 math questions using Chain-of-Thought prompting. '
-            'It got 9/10 correct (90% accuracy). I then tried zero-shot on 10 different, '
-            'easier questions and it got 7/10 (70%). CoT is clearly better. '
-            'I measured accuracy using semantic similarity because exact match '
-            'gave lower numbers. I didn\'t set a temperature because the default is fine."'
-        ),
-        "text_placeholder": (
-            "Mistake 1: Only tested 1 model — no comparison baseline\n"
-            "Mistake 2: Different questions for each strategy (not controlled)\n"
-            "Mistake 3: Easier questions for zero-shot biases the comparison\n"
-            "Mistake 4: Chose metric AFTER seeing results (p-hacking)\n"
-            "Mistake 5: ..."
-        ),
     },
 }
 
@@ -291,7 +149,7 @@ if page == "📤 Submit":
                 "> **Good original example:**\n"
                 "> - Question: *'What is the recommended daily dose of ibuprofen for adults?'*\n"
                 "> - P1: *'How many milligrams of ibuprofen can an adult safely take per day?'*\n"
-                "> - P2: *'For a grown-up, what's the max ibuprofen intake in 24 hours?'*\n"
+                "> - P2: *'For a grown-up, what\\'s the max ibuprofen intake in 24 hours?'*\n"
                 "> - P3: *'An adult has a headache — what ibuprofen dosage should they not exceed daily?'*"
             )
             example_question = st.text_input(
@@ -507,94 +365,132 @@ if page == "📤 Submit":
             if not all_filled:
                 st.caption("Fill in all 4 sections to enable the Submit button.")
 
-    # ── Task 5: Prompting Strategy Test ──────────────────────────────────
-    elif task_num == 5:
-        st.markdown("### Test 4 Prompting Strategies on One Question")
-        st.markdown(
-            "Pick **any question** (or use the default). Test it with 4 strategies "
-            "on any LLM. Record the results below."
+    # ── Task 2: Prompting Strategy Test ──────────────────────────────────
+    elif task_num == 2:
+        QUESTION = "A store sells a jacket for $120 after a 25% discount. What was the original price?"
+
+        st.markdown("### The Question")
+        st.info(f"**{QUESTION}**")
+        st.caption("You can use your own question — just keep it the same across all 4 strategies.")
+
+        st.markdown("---")
+        st.markdown("### Copy each prompt → paste into ChatGPT, Claude, or any LLM → enter the answer below")
+
+        # ── 1. Zero-shot ──────────────────────────────────────────────────
+        st.markdown("#### 1. Zero-shot")
+        st.caption("Just the question — no hints, no examples.")
+        st.code(QUESTION, language=None)
+        zs_answer = st.text_input(
+            "Model's answer (zero-shot)",
+            key="ans_zs",
+            placeholder="e.g., $160",
         )
 
         st.markdown("---")
 
-        st.markdown("**1. Your Question**")
-        t5_question = st.text_input(
-            "Question",
-            value="A store sells a jacket for $120 after a 25% discount. What was the original price?",
-            label_visibility="collapsed",
+        # ── 2. Few-shot ───────────────────────────────────────────────────
+        st.markdown("#### 2. Few-shot")
+        st.caption("3 worked examples before the question — the model follows the pattern.")
+        few_shot_prompt = (
+            "Here are some examples:\n"
+            "\n"
+            "Q: A phone costs $80 after a 20% discount. What was the original price?\n"
+            "A: The sale price is 80% of the original. Original = $80 / 0.80 = $100.\n"
+            "\n"
+            "Q: A book costs $12 after a 40% discount. What was the original price?\n"
+            "A: The sale price is 60% of the original. Original = $12 / 0.60 = $20.\n"
+            "\n"
+            "Q: A shirt costs $45 after a 10% discount. What was the original price?\n"
+            "A: The sale price is 90% of the original. Original = $45 / 0.90 = $50.\n"
+            "\n"
+            f"Now solve:\n"
+            f"Q: {QUESTION}\n"
+            "A:"
+        )
+        st.code(few_shot_prompt, language=None)
+        fs_answer = st.text_input(
+            "Model's answer (few-shot)",
+            key="ans_fs",
+            placeholder="e.g., $160",
         )
 
         st.markdown("---")
-        st.markdown("**2. Which Model Did You Use?**")
-        t5_model = st.text_input(
-            "Model",
-            placeholder="e.g., ChatGPT (GPT-4o), Claude Sonnet, Gemini",
-            label_visibility="collapsed",
+
+        # ── 3. Chain-of-Thought ───────────────────────────────────────────
+        st.markdown("#### 3. Chain-of-Thought (CoT)")
+        st.caption('"Let\'s think step by step" forces the model to show its reasoning.')
+        cot_prompt = f"{QUESTION}\n\nLet's think step by step."
+        st.code(cot_prompt, language=None)
+        cot_answer = st.text_input(
+            "Model's answer (CoT)",
+            key="ans_cot",
+            placeholder="e.g., Step 1: ... Step 2: ... The original price was $160.",
         )
 
         st.markdown("---")
-        st.markdown("**3. Results — Paste the model's answer for each strategy**")
 
-        st.markdown("**Zero-shot** (just the question, no extras)")
-        t5_zeroshot = st.text_area(
-            "Zero-shot answer",
-            placeholder="Paste the model's full answer here...",
-            height=80,
-            label_visibility="collapsed",
+        # ── 4. CoT + Self-Consistency ─────────────────────────────────────
+        st.markdown("#### 4. CoT + Self-Consistency")
+        st.caption(
+            "Same CoT prompt — paste it **3 separate times** (start a new chat each time). "
+            "Record all 3 answers and take the majority."
         )
-
-        st.markdown("**Few-shot** (give 2-3 worked examples first, then ask)")
-        t5_fewshot = st.text_area(
-            "Few-shot answer",
-            placeholder="Paste the model's full answer here...",
-            height=80,
-            label_visibility="collapsed",
+        sc_prompt = f"{QUESTION}\n\nLet's think step by step."
+        st.code(sc_prompt, language=None)
+        st.info(
+            "**How to do self-consistency:**\n"
+            "1. Paste the prompt above → note the answer (Run 1)\n"
+            "2. Start a **new chat** → paste again → note the answer (Run 2)\n"
+            "3. Start a **new chat** → paste again → note the answer (Run 3)\n"
+            "4. Take the majority answer (the one that appears most)"
         )
-
-        st.markdown("**Chain-of-Thought** (add 'Let's think step by step' at the end)")
-        t5_cot = st.text_area(
-            "CoT answer",
-            placeholder="Paste the model's full answer here...",
-            height=80,
-            label_visibility="collapsed",
-        )
-
-        st.markdown("**CoT + Self-Consistency** (run CoT 3 times — do they all agree?)")
-        t5_sc = st.text_area(
-            "Self-Consistency answers",
-            placeholder="Run 1: ...\nRun 2: ...\nRun 3: ...\nMajority answer: ...",
-            height=100,
-            label_visibility="collapsed",
+        sc_answer = st.text_input(
+            "All 3 answers + majority",
+            key="ans_sc",
+            placeholder="e.g., Run 1: $160  |  Run 2: $160  |  Run 3: $150  →  Majority: $160",
         )
 
         st.markdown("---")
-        st.markdown("**4. Your Observation** — Which strategy worked best? Any surprises?")
-        t5_observation = st.text_area(
-            "Observation",
-            placeholder="e.g., CoT was the only one that showed its work. Zero-shot got the right answer but didn't explain. Self-consistency all agreed, so voting didn't help here.",
-            height=80,
-            label_visibility="collapsed",
+        st.markdown("### Reflect")
+
+        best_strategy = st.selectbox(
+            "Which strategy gave the best / most complete answer?",
+            ["(select one)", "Zero-shot", "Few-shot", "Chain-of-Thought", "CoT + Self-Consistency"],
         )
 
-        all_filled = all([
-            name,
-            t5_model.strip(),
-            t5_zeroshot.strip(),
-            t5_fewshot.strip(),
-            t5_cot.strip(),
-            t5_sc.strip(),
-            t5_observation.strip(),
-        ])
+        surprises = st.text_area(
+            "Any surprises or differences between strategies? (optional)",
+            placeholder=(
+                "e.g., Zero-shot got it right immediately. CoT was longer but same answer. "
+                "All 3 CoT runs agreed on $160."
+            ),
+            height=90,
+        )
+
+        model_used = st.text_input(
+            "Which model(s) did you use?",
+            placeholder="e.g., ChatGPT-4o, Claude Sonnet, Gemini Flash",
+        )
+
+        all_filled = (
+            name
+            and zs_answer.strip()
+            and fs_answer.strip()
+            and cot_answer.strip()
+            and sc_answer.strip()
+            and best_strategy != "(select one)"
+            and model_used.strip()
+        )
 
         if st.button("🚀 Submit", disabled=not all_filled, use_container_width=True):
             combined_text = (
-                f"**Question:** {t5_question.strip()}\n"
-                f"**Model:** {t5_model.strip()}\n\n"
-                f"**Zero-shot:**\n{t5_zeroshot.strip()}\n\n"
-                f"**Few-shot:**\n{t5_fewshot.strip()}\n\n"
-                f"**Chain-of-Thought:**\n{t5_cot.strip()}\n\n"
-                f"**CoT + Self-Consistency:**\n{t5_sc.strip()}\n\n"
-                f"**Observation:**\n{t5_observation.strip()}"
+                f"**Model(s):** {model_used.strip()}\n\n"
+                f"**Zero-shot:** {zs_answer.strip()}\n"
+                f"**Few-shot:** {fs_answer.strip()}\n"
+                f"**Chain-of-Thought:** {cot_answer.strip()}\n"
+                f"**CoT + Self-Consistency:** {sc_answer.strip()}\n\n"
+                f"**Best strategy:** {best_strategy}"
+                + (f"\n\n**Surprises:** {surprises.strip()}" if surprises.strip() else "")
             )
             with st.spinner("Submitting..."):
                 rank = add_submission(task_num, name, text=combined_text)
@@ -602,7 +498,7 @@ if page == "📤 Submit":
             st.balloons()
 
         if not all_filled:
-            st.caption("Fill in all sections to enable the Submit button.")
+            st.caption("Fill in all 4 answers, select the best strategy, and enter the model name to enable Submit.")
 
     # ── All other tasks: generic form ────────────────────────────────────
     else:
