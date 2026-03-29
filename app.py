@@ -61,43 +61,6 @@ TASKS = {
         "custom_form": True,
     },
     2: {
-        "name": "Pipeline Implementation",
-        "description": "Submit a screenshot of your --dry-run --mock output from both pipelines.",
-        "accepts_image": True,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Any notes about your implementation?",
-        "text_placeholder": "e.g., Used async API calls, added retry with backoff...",
-    },
-    3: {
-        "name": "Analysis & Findings",
-        "description": "Upload your figures and write your 2-sentence findings + combined insight.",
-        "accepts_image": True,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Your findings (2 sentences each + combined insight)",
-        "text_placeholder": (
-            "Benchmark: We find that LLM consistency varies significantly across categories, "
-            "with math at 92% and ethics at 54%.\n\n"
-            "Ablation: Chain-of-thought improves accuracy by 15% over zero-shot on GSM8K.\n\n"
-            "Combined: Models that are less consistent on paraphrased questions also "
-            "benefit most from structured prompting strategies."
-        ),
-    },
-    4: {
-        "name": "GPU Optimization",
-        "description": "List the performance issues you found in slow_train.py and your fixes.",
-        "accepts_image": False,
-        "accepts_text": True,
-        "custom_form": False,
-        "text_label": "Issues found + fixes",
-        "text_placeholder": (
-            "Issue 1: DataLoader num_workers=0 → Fix: Set num_workers=4\n"
-            "Issue 2: No mixed precision → Fix: Added torch.cuda.amp autocast\n"
-            "Issue 3: Redundant .cpu() in training loop → Fix: Removed, keep on GPU"
-        ),
-    },
-    5: {
         "name": "Prompting Strategy Test",
         "description": "Test all 4 prompting strategies on one question and submit your results.",
         "accepts_image": False,
@@ -187,7 +150,7 @@ if page == "📤 Submit":
                 "> **Good original example:**\n"
                 "> - Question: *'What is the recommended daily dose of ibuprofen for adults?'*\n"
                 "> - P1: *'How many milligrams of ibuprofen can an adult safely take per day?'*\n"
-                "> - P2: *'For a grown-up, what's the max ibuprofen intake in 24 hours?'*\n"
+                "> - P2: *'For a grown-up, what\\'s the max ibuprofen intake in 24 hours?'*\n"
                 "> - P3: *'An adult has a headache — what ibuprofen dosage should they not exceed daily?'*"
             )
             example_question = st.text_input(
@@ -403,70 +366,106 @@ if page == "📤 Submit":
             if not all_filled:
                 st.caption("Fill in all 4 sections to enable the Submit button.")
 
-    # ── Task 5: Prompting Strategy Test ──────────────────────────────────
-    elif task_num == 5:
+    # ── Task 2: Prompting Strategy Test ──────────────────────────────────
+    elif task_num == 2:
         QUESTION = "A store sells a jacket for $120 after a 25% discount. What was the original price?"
-
-        PROMPTS = {
-            "Zero-shot": QUESTION,
-            "Few-shot": (
-                "Here are some examples:\n\n"
-                "Q: A phone costs $80 after a 20% discount. What was the original price?\n"
-                "A: The original price was $80 / 0.80 = $100.\n\n"
-                "Q: A book costs $12 after a 40% discount. What was the original price?\n"
-                "A: The original price was $12 / 0.60 = $20.\n\n"
-                "Q: A shirt costs $45 after a 10% discount. What was the original price?\n"
-                "A: The original price was $45 / 0.90 = $50.\n\n"
-                f"Now solve:\nQ: {QUESTION}\nA:"
-            ),
-            "Chain-of-Thought": f"{QUESTION}\n\nLet's think step by step.",
-            "CoT + Self-Consistency": (
-                f"{QUESTION}\n\nLet's think step by step.\n\n"
-                "(Paste this prompt 3 separate times and record each answer below)"
-            ),
-        }
 
         st.markdown("### The Question")
         st.info(f"**{QUESTION}**")
-        st.caption("You can use your own question instead — just be consistent across all 4 strategies.")
+        st.caption("You can use your own question — just keep it the same across all 4 strategies.")
 
         st.markdown("---")
-        st.markdown("### Step 1 — Copy each prompt and run it in ChatGPT, Claude, or any LLM")
+        st.markdown("### Copy each prompt → paste into ChatGPT, Claude, or any LLM → enter the answer below")
 
-        strategy_answers = {}
-        for strategy, prompt_text in PROMPTS.items():
-            with st.expander(f"**{strategy}** — expand to copy prompt & enter answer", expanded=True):
-                st.markdown("**Copy this prompt:**")
-                st.code(prompt_text, language=None)
-                if strategy == "CoT + Self-Consistency":
-                    st.caption("Run this prompt 3 separate times. Record all 3 answers.")
-                    strategy_answers[strategy] = st.text_input(
-                        "All 3 answers",
-                        key=f"ans_{strategy}",
-                        placeholder="e.g., Run 1: $160  |  Run 2: $160  |  Run 3: $150  →  Majority: $160",
-                    )
-                else:
-                    strategy_answers[strategy] = st.text_input(
-                        "Model's answer",
-                        key=f"ans_{strategy}",
-                        placeholder="e.g., $160  or  'The original price was $160.'",
-                    )
+        # ── 1. Zero-shot ──────────────────────────────────────────────────
+        st.markdown("#### 1. Zero-shot")
+        st.caption("Just the question — no hints, no examples.")
+        st.code(QUESTION, language=None)
+        zs_answer = st.text_input(
+            "Model's answer (zero-shot)",
+            key="ans_zs",
+            placeholder="e.g., $160",
+        )
 
         st.markdown("---")
-        st.markdown("### Step 2 — Reflect")
+
+        # ── 2. Few-shot ───────────────────────────────────────────────────
+        st.markdown("#### 2. Few-shot")
+        st.caption("3 worked examples before the question — the model follows the pattern.")
+        few_shot_prompt = (
+            "Here are some examples:\n"
+            "\n"
+            "Q: A phone costs $80 after a 20% discount. What was the original price?\n"
+            "A: The sale price is 80% of the original. Original = $80 / 0.80 = $100.\n"
+            "\n"
+            "Q: A book costs $12 after a 40% discount. What was the original price?\n"
+            "A: The sale price is 60% of the original. Original = $12 / 0.60 = $20.\n"
+            "\n"
+            "Q: A shirt costs $45 after a 10% discount. What was the original price?\n"
+            "A: The sale price is 90% of the original. Original = $45 / 0.90 = $50.\n"
+            "\n"
+            f"Now solve:\n"
+            f"Q: {QUESTION}\n"
+            "A:"
+        )
+        st.code(few_shot_prompt, language=None)
+        fs_answer = st.text_input(
+            "Model's answer (few-shot)",
+            key="ans_fs",
+            placeholder="e.g., $160",
+        )
+
+        st.markdown("---")
+
+        # ── 3. Chain-of-Thought ───────────────────────────────────────────
+        st.markdown("#### 3. Chain-of-Thought (CoT)")
+        st.caption('"Let\'s think step by step" forces the model to show its reasoning.')
+        cot_prompt = f"{QUESTION}\n\nLet's think step by step."
+        st.code(cot_prompt, language=None)
+        cot_answer = st.text_input(
+            "Model's answer (CoT)",
+            key="ans_cot",
+            placeholder="e.g., Step 1: ... Step 2: ... The original price was $160.",
+        )
+
+        st.markdown("---")
+
+        # ── 4. CoT + Self-Consistency ─────────────────────────────────────
+        st.markdown("#### 4. CoT + Self-Consistency")
+        st.caption(
+            "Same CoT prompt — paste it **3 separate times** (start a new chat each time). "
+            "Record all 3 answers and take the majority."
+        )
+        sc_prompt = f"{QUESTION}\n\nLet's think step by step."
+        st.code(sc_prompt, language=None)
+        st.info(
+            "**How to do self-consistency:**\n"
+            "1. Paste the prompt above → note the answer (Run 1)\n"
+            "2. Start a **new chat** → paste again → note the answer (Run 2)\n"
+            "3. Start a **new chat** → paste again → note the answer (Run 3)\n"
+            "4. Take the majority answer (the one that appears most)"
+        )
+        sc_answer = st.text_input(
+            "All 3 answers + majority",
+            key="ans_sc",
+            placeholder="e.g., Run 1: $160  |  Run 2: $160  |  Run 3: $150  →  Majority: $160",
+        )
+
+        st.markdown("---")
+        st.markdown("### Reflect")
 
         best_strategy = st.selectbox(
-            "Which strategy produced the best / most complete answer?",
+            "Which strategy gave the best / most complete answer?",
             ["(select one)", "Zero-shot", "Few-shot", "Chain-of-Thought", "CoT + Self-Consistency"],
         )
 
         surprises = st.text_area(
             "Any surprises or differences between strategies? (optional)",
             placeholder=(
-                "e.g., Zero-shot got it right immediately. CoT was longer but same answer. "
+                "e.g., Zero-shot got it right immediately. CoT was much longer but same answer. "
                 "All 3 CoT runs agreed on $160."
             ),
-            height=100,
+            height=90,
         )
 
         model_used = st.text_input(
@@ -476,7 +475,10 @@ if page == "📤 Submit":
 
         all_filled = (
             name
-            and all(v.strip() for v in strategy_answers.values())
+            and zs_answer.strip()
+            and fs_answer.strip()
+            and cot_answer.strip()
+            and sc_answer.strip()
             and best_strategy != "(select one)"
             and model_used.strip()
         )
@@ -484,11 +486,11 @@ if page == "📤 Submit":
         if st.button("🚀 Submit", disabled=not all_filled, use_container_width=True):
             combined_text = (
                 f"**Model(s):** {model_used.strip()}\n\n"
-                + "\n".join(
-                    f"**{strat}:** {ans.strip()}"
-                    for strat, ans in strategy_answers.items()
-                )
-                + f"\n\n**Best strategy:** {best_strategy}"
+                f"**Zero-shot:** {zs_answer.strip()}\n"
+                f"**Few-shot:** {fs_answer.strip()}\n"
+                f"**Chain-of-Thought:** {cot_answer.strip()}\n"
+                f"**CoT + Self-Consistency:** {sc_answer.strip()}\n\n"
+                f"**Best strategy:** {best_strategy}"
                 + (f"\n\n**Surprises:** {surprises.strip()}" if surprises.strip() else "")
             )
             with st.spinner("Submitting..."):
@@ -497,37 +499,7 @@ if page == "📤 Submit":
             st.balloons()
 
         if not all_filled:
-            st.caption("Fill in all 4 strategy answers, select the best strategy, and enter the model name to enable Submit.")
-
-    # ── All other tasks: generic form ────────────────────────────────────
-    else:
-        uploaded_image = None
-        text_content = ""
-
-        if task.get("accepts_image"):
-            uploaded_image = st.file_uploader(
-                "Upload screenshot / figure",
-                type=["png", "jpg", "jpeg", "gif"],
-                help="Take a screenshot and upload it here",
-            )
-            if uploaded_image:
-                st.image(uploaded_image, caption="Preview", width=400)
-
-        if task.get("accepts_text"):
-            text_content = st.text_area(
-                task["text_label"],
-                placeholder=task.get("text_placeholder", ""),
-                height=150,
-            )
-
-        can_submit = name and (uploaded_image or text_content)
-
-        if st.button("🚀 Submit", disabled=not can_submit, use_container_width=True):
-            image_bytes = uploaded_image.getvalue() if uploaded_image else None
-            with st.spinner("Submitting..."):
-                rank = add_submission(task_num, name, text=text_content, image_bytes=image_bytes)
-            st.success(f"Submitted! You are #{rank} for this task.")
-            st.balloons()
+            st.caption("Fill in all 4 answers, select the best strategy, and enter the model name to enable Submit.")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # PAGE: LEADERBOARD

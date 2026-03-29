@@ -116,7 +116,7 @@ def clear_task(task_num: int) -> bool:
 def get_all_submissions() -> dict[int, list[dict]]:
     """Fetch submissions for all tasks."""
     result = {}
-    for task_num in range(6):
+    for task_num in range(3):
         result[task_num] = get_submissions(task_num)
     return result
 
