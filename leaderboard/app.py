@@ -84,6 +84,72 @@ TASKS = {
         "text_label": "Overleaf profile URL or any notes (optional)",
         "text_placeholder": "e.g., https://www.overleaf.com/user/12345 — created free account",
     },
+    5: {
+        "name": "Quiz 1: Overclaiming & Consistency",
+        "description": "Read the abstract below and list every error you can find.",
+        "is_quiz": True,
+        "hint": "Checklist items to apply: #1 (consistency), #2 (contributions), #5 (honesty).",
+        "num_errors": 4,
+        "abstract": (
+            "We present BenchEval, a framework for evaluating large language model consistency "
+            "across paraphrased queries. Our method achieves state-of-the-art performance on all "
+            "five benchmark datasets, with an average accuracy improvement of 23.4% over baseline "
+            "methods. BenchEval introduces a novel consistency score that captures semantic "
+            "equivalence across query variants. Experiments on GPT-4 demonstrate that few-shot "
+            "prompting reduces inconsistency by over 60% compared to zero-shot approaches. We "
+            "release our code and datasets to support reproducible research in LLM evaluation."
+        ),
+    },
+    6: {
+        "name": "Quiz 2: Cherry-Picking & Generalization",
+        "description": "Read the abstract below and list every error you can find.",
+        "is_quiz": True,
+        "hint": "Checklist items to apply: #4 (baselines), #5 (honesty), #9 (limitations).",
+        "num_errors": 4,
+        "abstract": (
+            "This paper investigates the effect of prompting strategies on mathematical reasoning "
+            "in large language models. We propose a chain-of-thought variant called Structured "
+            "Reasoning Prompts (SRP) that improves model accuracy on math word problems. SRP "
+            "outperforms all existing approaches including GPT-4 and Claude Sonnet on the GSM8K "
+            "dataset, achieving 94.2% accuracy. We evaluate on a curated subset of problems "
+            "selected to highlight the strengths of our approach. SRP requires only minor "
+            "modifications to existing prompting pipelines and can be applied to any "
+            "autoregressive language model."
+        ),
+    },
+    7: {
+        "name": "Quiz 3: Reproducibility & Vague Claims",
+        "description": "Read the abstract below and list every error you can find.",
+        "is_quiz": True,
+        "hint": "Checklist items to apply: #2 (contributions), #3 (reproducibility), #6 (figures).",
+        "num_errors": 4,
+        "abstract": (
+            "We present KnowledgeRAG, a retrieval-augmented generation system that incorporates "
+            "domain knowledge graphs to improve factual accuracy in scientific question answering. "
+            "KnowledgeRAG achieves a 15.3% improvement in F1 score over a standard RAG baseline "
+            "on the SciQ dataset. Our ablation study confirms that the knowledge graph component "
+            "is the primary driver of improvement. We demonstrate that our system generalizes "
+            "across three scientific domains: chemistry, biology, and astrophysics. The system is "
+            "computationally efficient, requiring only 2GB of memory to deploy."
+        ),
+    },
+    8: {
+        "name": "Quiz 4: Hallucinated References",
+        "description": "Read the related work paragraph and identify which citations are highest risk. Explain why.",
+        "is_quiz": True,
+        "hint": "Checklist item to apply: #11 (references). Rank each citation: Safe / Medium risk / High risk.",
+        "num_errors": 3,
+        "abstract": (
+            "Prior work on LLM consistency includes the Consistency-Aware Reasoning framework by "
+            "Park & Yamamoto (2022), which showed that self-consistency improves accuracy by 18% "
+            "on arithmetic benchmarks. LLM evaluation surveys (Liu et al., 2023; Wang et al., "
+            "2023) have documented inconsistency as a core challenge. The BLEU-Bench evaluation "
+            "suite (Martinez et al., 2021) provides standardized metrics for paraphrase "
+            "invariance. Chen et al. (2023) introduced GraphRAG for multi-hop scientific question "
+            "answering. Vaswani et al. (2017) introduced the transformer architecture that "
+            "underlies all models in our study."
+        ),
+    },
 }
 
 # ── Secrets check ────────────────────────────────────────────────────────────
@@ -517,6 +583,42 @@ if page == "📤 Submit":
 
         if not all_filled:
             st.caption("Fill in all 4 answers, select the best strategy, and enter the model name to enable Submit.")
+
+    # ── Quiz tasks (5–8) ─────────────────────────────────────────────────
+    elif task.get("is_quiz"):
+        st.markdown(f"### Abstract to Review")
+        st.info(task["hint"])
+        st.markdown(f"**There are {task['num_errors']} errors hidden in this text. Can you find them all?**")
+        st.code(task["abstract"], language=None)
+
+        st.markdown("---")
+        errors_found = st.text_area(
+            "List each error you found (one per line)",
+            placeholder="Error 1: ...\nError 2: ...\nError 3: ...",
+            height=200,
+        )
+        num_found = st.number_input(
+            "How many errors did you find?",
+            min_value=0, max_value=10, step=1,
+        )
+        confidence = st.select_slider(
+            "How confident are you?",
+            options=["Just guessing", "Somewhat sure", "Pretty confident", "Certain"],
+        )
+
+        all_filled = name and errors_found.strip() and num_found > 0
+
+        if st.button("🚀 Submit", disabled=not all_filled, use_container_width=True):
+            combined_text = (
+                f"**Errors found ({num_found}) — {confidence}:**\n\n{errors_found.strip()}"
+            )
+            with st.spinner("Submitting..."):
+                rank = add_submission(task_num, name, text=combined_text)
+            st.success(f"Submitted! You are #{rank} for this task.")
+            st.balloons()
+
+        if not all_filled:
+            st.caption("List your errors and enter how many you found to enable Submit.")
 
     # ── All other tasks: generic form ────────────────────────────────────
     else:
