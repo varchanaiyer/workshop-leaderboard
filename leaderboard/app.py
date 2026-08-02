@@ -66,6 +66,15 @@ TASKS = {
         "accepts_text": False,
         "custom_form": True,
     },
+    3: {
+        "name": "OpenReview Account",
+        "description": "Create your OpenReview account (or submit the Algoverse affiliation form) and upload a screenshot of your profile page.",
+        "accepts_image": True,
+        "accepts_text": True,
+        "custom_form": False,
+        "text_label": "Which route did you take? (optional: paste your OpenReview profile URL)",
+        "text_placeholder": "e.g., Created account directly — https://openreview.net/profile?id=~Your_Name1\nOR: Submitted Algoverse form, waiting for @algoverse.ai email",
+    },
 }
 
 # ── Secrets check ────────────────────────────────────────────────────────────
