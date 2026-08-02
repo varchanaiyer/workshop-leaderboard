@@ -75,6 +75,15 @@ TASKS = {
         "text_label": "Which route did you take? (optional: paste your OpenReview profile URL)",
         "text_placeholder": "e.g., Created account directly — https://openreview.net/profile?id=~Your_Name1\nOR: Submitted Algoverse form, waiting for @algoverse.ai email",
     },
+    5: {
+        "name": "NeurIPS Template + Abstract",
+        "description": "Create an Overleaf project from the NeurIPS template, write your abstract in it, and upload a screenshot of the compiled PDF.",
+        "accepts_image": True,
+        "accepts_text": True,
+        "custom_form": False,
+        "text_label": "Paste your abstract and/or Overleaf project link (optional)",
+        "text_placeholder": "e.g., https://www.overleaf.com/project/12345\nAbstract: We study whether LLMs give consistent answers to paraphrased questions...",
+    },
 }
 
 # ── Secrets check ────────────────────────────────────────────────────────────
@@ -631,7 +640,7 @@ elif page == "🔧 Admin":
     # Authenticated
     st.success("Authenticated as admin.")
 
-    all_subs = get_all_submissions(num_tasks=len(TASKS))
+    all_subs = get_all_submissions(task_nums=list(TASKS))
     total = sum(len(subs) for subs in all_subs.values())
     st.metric("Total Submissions (all tasks)", total)
 
